@@ -1,0 +1,17 @@
+---
+# Build Docker image of Docker registry [https://github.com/docker/docker-registry]
+
+- hosts: build_hosts
+
+  pre_tasks:
+  - include: tasks/local_env.yml
+  - include: tasks/build_prerequisites.yml tags=prereq
+
+  roles:
+  - { role: source_code,        tags=source }
+  - { role: docker_images,      tags=docker }
+
+  post_tasks:
+  - include: tasks/package.yml  tags=tar
+  - include: tasks/pull.yml     tags=pull
+  - include: tasks/push.yml     tags=push

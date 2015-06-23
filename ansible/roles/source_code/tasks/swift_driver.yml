@@ -1,0 +1,13 @@
+---
+
+- name: Download swift driver for docker registry
+  get_url: url={{ swift_driver_src }}/{{ swift_driver_tag }}.zip
+           dest={{ build_dir }}/docker-registry-driver-swift.source.zip
+
+- name: Extract swift driver from archive
+  unarchive: src={{ build_dir }}/docker-registry-driver-swift.source.zip dest={{ build_dir }}
+             copy=no
+
+- name: Rename swift driver source code folder
+  command: mv {{ build_dir }}/docker-registry-driver-swift-{{ swift_driver_tag }}
+              {{ build_dir }}/docker-registry-driver-swift.source

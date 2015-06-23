@@ -1,0 +1,14 @@
+---
+# Build docker images of the docker registry
+
+- name: Get rid of any stale Dockerfile
+  file: state=absent name={{ build_dir }}/Dockerfile
+
+- include: ssl_certificate.yml
+
+- include: base_image.yml
+- include: main_image.yml
+- include: dev_image.yml
+
+- name: Clean up any remaining Dockerfile
+  file: state=absent name={{ build_dir }}/Dockerfile

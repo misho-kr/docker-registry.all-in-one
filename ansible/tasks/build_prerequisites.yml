@@ -1,0 +1,41 @@
+---
+# Install required software package necessary to build from source
+# and to make docker images
+
+- name: Remove leftover build directory
+  file: state=absent path={{ build_dir }}
+
+- name: Create build directory
+  file: state=directory path={{ build_dir }}
+
+- name: Install pre-requisite software packages (Debian)
+  sudo: yes
+  apt: name={{ item }} state=present
+  when: ansible_os_family == 'Debian'
+  register: package_installation_debian
+  with_items:
+   - git
+   - lxc-docker
+   - zip
+   - python-pip
+   - openssl
+
+- name: Install pre-requisite software packages (RedHat)
+  sudo: yes
+  yum: name={{ item }} state=present
+  when: ansible_os_family == 'RedHat'
+  register: package_installation_redhat
+  with_items:
+   - git
+   - docker-io
+   - zip
+   - python-pip
+   - openssl
+
+- name: Stop (and fail) when package installation was not performed
+  fail: msg="Software package installation failed, unknown OS family {{ ansible_os_family }}"
+  when: package_installation_debian|skipped and package_installation_redhat|skipped 
+
+- name: Install pre-requisite software packages (pip)
+  sudo: yes
+  pip: name=docker-py

@@ -1,0 +1,4 @@
+---
+
+ssl_certificate_filename:       "docker-registry"
+ssl_certificate_domain:         "docker-registry.fqdn"

@@ -1,0 +1,11 @@
+---
+# Export and package the docker image(s) of the docker registry
+
+- name: Export and package the docker image(s) of the docker registry
+  command: docker save -o "{{ item.tarfile }}.tar" {{ item.image }}
+           chdir={{ build_dir }}
+  with_items: docker_images
+
+- name: Compress docker image files
+  command: gzip -f "{{ item.tarfile }}.tar" chdir={{ build_dir }}
+  with_items: docker_images

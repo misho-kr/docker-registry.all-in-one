@@ -1,0 +1,9 @@
+---
+# Retrieve docker image tarfiles from build host
+
+- name: Bring tarfiles of docker images to local machine
+  fetch: src="{{ build_dir }}/{{ item.tarfile }}.tar.gz" 
+         dest="{{ local_pwd.stdout }}"
+         flat=yes
+         failed_on_missing=yes validate_md5=no
+  with_items: docker_images

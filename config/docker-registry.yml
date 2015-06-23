@@ -1,0 +1,161 @@
+# All other flavors inherit the `common' config snippet
+common: &common
+    # Default log level is info
+    loglevel: _env:LOGLEVEL:info
+    # By default, the registry acts standalone (eg: doesn't query the index)
+    # standalone: _env:STANDALONE:true
+    # workaround for: https://github.com/dotcloud/docker-registry/issues/432
+    standalone: true
+    # Token auth is enabled (if NOT standalone)
+    disable_token_auth: _env:DISABLE_TOKEN_AUTH
+    # No priv key
+    privileged_key: _env:PRIVILEGED_KEY
+    # No search backend
+    search_backend: _env:SEARCH_BACKEND
+    # SQLite search backend
+    sqlalchemy_index_database: _env:SQLALCHEMY_INDEX_DATABASE:sqlite:////var/lib/docker-registry/sqlachemy-index.db
+
+    # Mirroring is not enabled
+    # mirroring:
+    #     source: _env:MIRROR_SOURCE # https://registry-1.docker.io
+    #     source_index: _env:MIRROR_SOURCE_INDEX # https://index.docker.io
+    #    tags_cache_ttl: _env:MIRROR_TAGS_CACHE_TTL:172800 # seconds
+    #
+
+    # Enabling these options makes the Registry send an email on each code Exception
+    email_exceptions:
+        smtp_host: _env:SMTP_HOST
+        smtp_port: _env:SMTP_PORT:25
+        smtp_login: _env:SMTP_LOGIN
+        smtp_password: _env:SMTP_PASSWORD
+        smtp_secure: _env:SMTP_SECURE:false
+        from_addr: _env:SMTP_FROM_ADDR:docker-registry@localdomain.local
+        to_addr: _env:SMTP_TO_ADDR:noise+dockerregistry@localdomain.local
+
+    # Enable bugsnag (set the API key)
+    bugsnag: _env:BUGSNAG
+
+# ======================================================================
+#  these entries left for for testing only
+# ======================================================================
+
+local: &local
+    <<: *common
+    storage: local
+    storage_path: _env:STORAGE_PATH:/var/lib/docker-registry
+
+# This is the default configuration when no flavor is specified
+dev: &dev
+    <<: *local
+    loglevel: _env:LOGLEVEL:debug
+    search_backend: _env:SEARCH_BACKEND:sqlalchemy
+
+# ======================================================================
+#                   Swift, Elastic Search, Redis
+# ======================================================================
+
+# For caching small files to local REDIS database
+redis-local:  &redis-local
+    cache:
+        host: _env:CACHE_REDIS_HOST:localhost
+        port: _env:CACHE_REDIS_PORT:6379
+        db: 0
+    #     password: _env:CACHE_REDIS_PASSWORD
+
+    # Enabling LRU cache for small files
+    # This speeds up read/write on small files
+    # when using a remote storage backend (like S3).
+    cache_lru:
+        host: _env:CACHE_LRU_REDIS_HOST:localhost
+        port: _env:CACHE_LRU_REDIS_PORT:6379
+        db: 0
+    #     password: _env:CACHE_LRU_REDIS_PASSWORD
+
+# For storing index metadata to Elastic Search
+elastic-search-qa: &elastic-search-qa
+    search_backend: elasticsearchindex.elasticsearchindex
+    search_options:
+        zk_address: _env:ZK_ADDRESS:zk-host-1:2181,zk-host-2:2181,zk-host-n:2181
+        es_cluster:     _env:ES_CLUSTER:elasticsearch-cluster
+        index:          _env:ES_INDEX:community-docker-registry
+        timeout:        _env:ES_WRITE_TIMEOUT:2                 # seconds
+        max_retries:    _env:ES_WRITE_RETRIES:0                 # N of retries after 1st failure, total writes: 1=1+0
+
+elastic-search-dev: &elastic-search-dev
+    search_backend: elasticsearchindex.elasticsearchindex
+    search_options:
+        zk_address:     _env:ZK_ADDRESS:zk-dev-host-1:2181,zk-dev-host-2:2181,zk-dev-host-n:2181
+        es_cluster:     _env:ES_CLUSTER:elasticsearch-cluster
+        index:          _env:ES_INDEX:devtest-docker-registry
+        timeout:        _env:ES_WRITE_TIMEOUT:6                 # seconds
+        max_retries:    _env:ES_WRITE_RETRIES:2                 # N of retries after 1st failure, total writes: 3 = 2+1
+
+# TBC
+elastic-search-prod: &elastic-search-prod
+    <<: *elastic-search-qa
+
+# For storing images in Openstack Swift
+swift-qa: &swift-qa
+    storage:           swift
+    storage_path:      _env:STORAGE_PATH:/registry
+    # keystone authorization
+    swift_authurl:     _env:OS_AUTH_URL:https://<os-identity>:5443/v2.0
+    swift_user:        _env:OS_USERNAME:<os-user>
+    swift_password:    _env:OS_PASSWORD:no-password-in-cleartext
+    swift_region_name: _env:OS_REGION_NAME:<os-region>
+    swift_tenant_name: _env:OS_TENANT_NAME:<os-tenant>
+    swift_container:   _env:OS_CONTAINER:community-registry
+
+swift-dev: &swift-dev
+    storage: swift
+    storage_path:      _env:STORAGE_PATH:/my-docker-registry-root
+    # keystone authorization
+    swift_authurl:     _env:OS_AUTH_URL:https://<os-identify>:5443/v2.0
+    swift_user:        _env:OS_USERNAME:<os-user>
+    swift_password:    _env:OS_PASSWORD:no-password-in-cleartext
+    swift_region_name: _env:OS_REGION_NAME:<os-regison>
+    swift_tenant_name: _env:OS_TENANT_NAME:<os-tenant>
+    swift_container:   _env:OS_CONTAINER:my-swift-container-for-docker-registry
+
+# TBC
+swift-prod: &swift-prod
+    <<: *swift-qa
+
+# ======================================================================
+#
+#  Main Docker Registry
+#
+# Note: redis database should be used only by a docker registry that is
+# set up to run as single instance. In cluster setup DON'T use redis or
+# inconsistent results will be returned by docker push and pull commands
+#
+# ======================================================================
+
+# dev (sinlge-instance) only ! ---------
+
+devel-local: &devel-local
+    <<: *dev
+
+devel: &devel
+    <<: *common
+    <<: *redis-local
+    <<: *swift-dev
+    <<: *elastic-search-dev
+
+# qa -----------------------------------
+
+qa: &qa
+    <<: *common
+    <<: *swift-qa
+    <<: *elastic-search-qa
+
+qa-noes: &qa-noes
+    <<: *common
+    <<: *swift-qa
+
+# TBC ----------------------------------
+
+prod: &prod
+    <<: *common
+    <<: *swift-prod
+    <<: *elastic-search-prod

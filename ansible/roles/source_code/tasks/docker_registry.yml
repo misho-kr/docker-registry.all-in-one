@@ -1,0 +1,21 @@
+---
+
+- name: Download docker registry source code
+  get_url: url={{ docker_registry_src }}/{{ docker_registry_tag }}.zip
+           dest={{ build_dir }}/docker-registry.source.zip
+
+- name: Extract docker registry archive
+  unarchive: src={{ build_dir }}/docker-registry.source.zip dest={{ build_dir }}
+             copy=no
+
+- name: Rename docker registry source code folder
+  command: mv {{ build_dir }}/docker-registry-{{ docker_registry_tag }}
+              {{ build_dir }}/docker-registry.source
+
+# Bump Gunicorn version to pick up fixes for:
+# - https://github.com/docker/docker-registry/issues/320
+# - https://github.com/benoitc/gunicorn/commit/62f6fb2d33182d985229d873c597ecbaa9801662
+
+- name: Bump Gunicorn version to pick up bug fixes
+  lineinfile: dest={{ build_dir }}/docker-registry.source/requirements/main.txt
+              regexp="^gunicorn==" line="gunicorn==19.1.1"

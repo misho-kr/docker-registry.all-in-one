@@ -1,0 +1,6 @@
+---
+# Collect information about local execution environment
+
+- name: Discover current workding directory
+  local_action: command pwd
+  register: local_pwd

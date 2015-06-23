@@ -1,0 +1,21 @@
+---
+# Build docker image of DEV docker registry
+
+- name: Clean up leftover Dockerfile
+  file: state=absent name={{ build_dir }}/Dockerfile
+
+# Likely a bug in Ansible, module fails if Dockefile is a link
+#
+# - name: Prepare to build dev image
+#  file: state=link 
+#        src={{ build_dir }}/Dockerfile.setup-dev 
+#        dest={{ build_dir }}/Dockerfile
+
+- name: Prepare to build dev image
+  command: cp {{ build_dir }}/Dockerfile.setup-dev {{ build_dir }}/Dockerfile
+
+- name: Build dev docker image
+  sudo: yes
+  docker_image: name={{ docker_image_dev }}
+                path={{ build_dir }}
+                state=build

@@ -1,0 +1,78 @@
+# ----------------------------------------------------------------------
+#	                    Docker registry all-in-one 
+#
+#  - nginx frontend
+#  - docker-registry
+#  - swift backend
+#  - supervisord process manager
+#  - rsyslog (is not enabled, tricky to make docker-registry to use it)
+#
+#  ref: https://github.com/dotcloud/docker-registry
+#
+#  Note: This image provides all configuration files necessary to
+#        run docker registry in container
+#
+#  Note2: Use OS_PASSWORD envvar to pass swift password to the container
+#
+# ----------------------------------------------------------------------
+
+FROM            docker-registry-base
+MAINTAINER      Misho Krastev   "mkrastev@paypal.com"
+
+# Configure supervisord
+ADD supervisord /tmp/supervisord
+RUN (   cd /tmp/supervisord                                 && \
+        cp supervisord.conf         /etc/supervisor         && \
+        cp rsyslog.conf             /etc/supervisor/conf.d  && \
+        cp nginx.conf               /etc/supervisor/conf.d  && \
+        cp docker-registry.conf     /etc/supervisor/conf.d  && \
+        cp logrotate.conf           /etc/supervisor/conf.d  && \
+        rm -rf /tmp/supervisord )
+
+# Configure rsyslogd
+
+# Configure nginx
+ADD config/htpasswd                     /docker-registry/config/htpasswd
+ADD nginx  /tmp/nginx
+
+# workaround for "FATAL: could not access private key file "/etc/ssl/private/ssl-cert-snakeoil.key": Permission denied"
+# ref: https://github.com/hw-cookbooks/postgresql/issues/156
+RUN (   mv /etc/ssl/private             /etc/ssl/private.original             && \
+        mkdir /etc/ssl/private                                                && \
+        chmod g=x /etc/ssl/private                                            && \
+        chgrp www-data /etc/ssl/private)
+
+RUN (   cd /tmp/nginx                                                         && \
+        mv /etc/nginx/nginx.conf        /etc/nginx/nginx.conf-original        && \
+        cp nginx.conf                   /etc/nginx/nginx.conf                 && \
+        cp docker-registry.conf         /etc/nginx/conf.d/                    && \
+        cp docker-registry.http.conf    /etc/nginx/sites-available/           && \
+        cp docker-registry.https.conf   /etc/nginx/sites-available/           && \
+        mkdir /etc/nginx/ssl                                                  && \
+        cp docker-registry.crt          /etc/nginx/ssl/docker-registry.crt    && \
+        chmod a+r                       /etc/nginx/ssl/docker-registry.crt    && \
+        cp docker-registry.key 	        /etc/nginx/ssl/docker-registry.key    && \
+        chgrp www-data                  /etc/nginx/ssl/docker-registry.key    && \
+        chmod g+r                       /etc/nginx/ssl/docker-registry.key    && \        
+        cd /etc/nginx/sites-enabled                                           && \
+        ln -s ../sites-available/docker-registry.http.conf                    && \
+        ln -s ../sites-available/docker-registry.https.conf                   && \
+        rm /etc/nginx/sites-enabled/default                                   && \
+        mkdir /var/run/nginx                                                  && \
+        chown www-data:www-data         /var/run/nginx /var/log/nginx         && \
+        rm -rf /tmp/nginx )
+
+# Configure docker registry
+ADD config/docker-registry.yml          /docker-registry/config/active.yml
+
+# Configure logrotate
+ADD logrotate/nginx.conf                /etc/logrotate.d/nginx
+
+# Runtime parameters
+ENV DOCKER_REGISTRY_CONFIG      /docker-registry/config/active.yml
+ENV SETTINGS_FLAVOR             qa
+ENV LOGLEVEL                    info
+
+EXPOSE 8080 8443
+
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]

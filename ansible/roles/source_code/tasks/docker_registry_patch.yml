@@ -1,0 +1,15 @@
+---
+
+- name: Prepare to apply patch {{ docker_registry_patch.desc }} -- save original file(s)
+  command: cp {{ build_dir }}/docker-registry.source/{{ item.src }}
+              {{ build_dir }}/docker-registry.source/{{ item.src }}-original
+  with_items: docker_registry_patch.files
+
+- name: Apply patch {{ docker_registry_patch.desc }}
+  get_url: url={{ docker_registry_patch.repo }}/raw/{{ docker_registry_patch.commit }}/{{ item.src }}
+           dest={{ build_dir }}/docker-registry.source/{{ item.dest }}
+           force=yes
+           url_username={{ docker_registry_patch.repo_username }}
+           url_password={{ docker_registry_patch.repo_password }}
+           # force_basic_auth={{ docker_registry_patch.force_basic_auth }}
+  with_items: docker_registry_patch.files

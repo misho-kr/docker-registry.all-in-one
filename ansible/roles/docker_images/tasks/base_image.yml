@@ -1,0 +1,21 @@
+---
+# Build "base" docker image of the docker registry
+
+- name: Clean up leftover Dockerfile
+  file: state=absent name={{ build_dir }}/Dockerfile
+
+# Likely a bug in Ansible, module fails if Dockefile is a link
+#
+# - name: Prepare to build base image
+#   file: state=link
+#         src={{ build_dir }}/Dockerfile.base
+#        dest={{ build_dir }}/Dockerfile
+
+- name: Prepare to build base image
+  command: cp {{ build_dir }}/Dockerfile.base {{ build_dir }}/Dockerfile
+
+- name: Build base docker image
+  sudo: yes
+  docker_image: name={{ docker_image_base }}
+                path={{ build_dir }}
+                state=build

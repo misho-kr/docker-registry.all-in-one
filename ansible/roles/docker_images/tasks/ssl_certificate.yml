@@ -1,0 +1,14 @@
+---
+# Make (self-signed) SSL certificate for the Nginx server
+
+- name: Provide SSL certificate for the Nginx server
+  command: "{{ build_dir }}/nginx/make-ssl-cert.sh -d {{ ssl_certificate_domain }} {{ ssl_certificate_filename }}"
+  args:
+    chdir:      "{{ build_dir }}/nginx"
+    creates:    "{{ build_dir }}/nginx/{{ ssl_certificate_filename }}.key"
+
+- name: Bring (self-signed CA) SSL certificate for the Nginx server to local machine
+  fetch: src="{{ build_dir }}/nginx/{{ ssl_certificate_filename }}.crt" 
+         dest="{{ local_pwd.stdout }}"
+         flat=yes
+         failed_on_missing=yes validate_md5=no

@@ -1,0 +1,22 @@
+---
+# Pull source code for docker registry, drivers, plugins, etc
+
+- include:  docker_registry.yml
+
+# --------------------------------------------------------
+#        ------     Patching source code    -------
+#
+# FIXME: use loops or some other technique
+# --------------------------------------------------------
+
+- include:  docker_registry_patch.yml docker_registry_patch={{ docker_registry_patches.0 }}
+  when: docker_registry_patches.0.enabled | bool
+
+# --------------------------------------------------------
+
+- include:  swift_driver.yml
+- include:  elastic_search_plugin.yml
+
+- name: Copy Docker project to build customized docker registry
+  synchronize: src={{ item }}/.. dest={{ build_dir }}
+  with_items: local_pwd.stdout_lines

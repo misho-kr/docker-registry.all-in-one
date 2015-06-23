@@ -1,0 +1,12 @@
+---
+# Deliver docker images to target repository
+
+- name: Tag docker images
+  command: docker tag -f {{ item.image }} "{{ remote_docker_repo }}/{{ item.remote_tag }}"
+  with_items: docker_images
+  when: push_images_to_remote == true
+
+- name: Push docker images to target docker repository
+  command: docker push "{{ remote_docker_repo }}/{{ item.remote_tag }}"
+  with_items: docker_images
+  when: push_images_to_remote == true

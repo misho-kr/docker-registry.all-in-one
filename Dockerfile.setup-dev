@@ -1,0 +1,50 @@
+# ----------------------------------------------------------------------
+#	                    Docker registry all-in-one (dev version)
+#
+#  - nginx frontend
+#  - docker-registry
+#  - redis database
+#  - swift backend
+#  - supervisord process manager
+#  - rsyslog (is not enabled, tricky to make docker-registry to use it)
+#
+#  ref: https://github.com/dotcloud/docker-registry
+#
+#  Note: This image adds redis cache for imporved performance
+#
+# ----------------------------------------------------------------------
+
+FROM            docker-registry
+MAINTAINER      Misho Krastev   "mkrastev@paypal.com"
+
+# Install components
+RUN adduser --system --disabled-login \
+            --home /var/lib/redis --no-create-home      \
+            --group --shell /bin/false --uid 6379       \
+            redis
+
+RUN apt-get install -y nano	# by popular demand
+RUN apt-get install -y redis-server                     && \
+    chown redis:redis /var/log/redis
+
+# Configure supervisord
+ADD supervisord/redis.conf      /etc/supervisor/conf.d/redis.conf
+
+# Configure rsyslogd
+
+# Configure nginx
+# ADD nginx/docker-registry.crt           /etc/ssl/certs/docker-registry.crt
+# ADD nginx/docker-registry.key           /etc/ssl/certs/docker-registry.key
+ADD config/htpasswd.dev                 /docker-registry/config/htpasswd
+
+# Configure redis
+ADD redis/redis.conf  /etc/redis/redis-custom.conf
+RUN echo "include /etc/redis/redis-custom.conf" >> /etc/redis/redis.conf
+
+# Runtime parameters
+ENV SETTINGS_FLAVOR             devel
+ENV LOGLEVEL                    info
+
+EXPOSE 8080 8443 5000
+
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]

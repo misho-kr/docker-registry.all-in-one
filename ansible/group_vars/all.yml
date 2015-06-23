@@ -1,0 +1,26 @@
+# ----------------------------------------------------------------------
+#       Playbook configuration
+# ----------------------------------------------------------------------
+
+build_dir:              "{{ ansible_env.HOME }}/docker-registry.build"
+
+docker_image_username:  "ansible_build"
+docker_image_base:      "docker-registry-base"
+docker_image_main:      "docker-registry"
+docker_image_dev:       "docker-registry-dev"
+
+docker_images:          [
+                            {
+                                image:      "{{ docker_image_main }}", 
+                                tarfile:    "{{ docker_image_main }}",
+                                remote_tag: "{{ docker_image_username }}/{{ docker_image_main }}"
+                            },
+                            { 
+                                image:      "{{ docker_image_dev }}", 
+                                tarfile:    "{{ docker_image_dev }}",
+                                remote_tag: "{{ docker_image_username }}/{{ docker_image_dev }}"
+                            }
+                        ]
+
+remote_docker_repo:     docker-registry.hostname
+push_images_to_remote:  false

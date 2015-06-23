@@ -1,0 +1,56 @@
+# ----------------------------------------------------------------------
+#	                Docker registry all-in-one (base image) 
+#
+#  - nginx frontend
+#  - docker-registry
+#  - swift backend
+#  - supervisord process manager
+#  - rsyslog (is not enabled, tricky to make docker-registry to use it)
+#
+#  ref: https://github.com/dotcloud/docker-registry
+#
+#  Note: This image does not have any configuration files,
+#        i.e. it can not be used to start a container
+# ----------------------------------------------------------------------
+
+FROM            ubuntu:14.04
+MAINTAINER      Misho Krastev   "mkrastev@paypal.com"
+
+RUN apt-get update      && \
+    apt-get upgrade -y  && \
+    apt-get install -y supervisor nginx-extras logrotate rsyslog    && \
+    chown -R www-data:www-data /var/lib/nginx
+#    apt-get install -y apache2-utils
+
+# Install python packages
+# Install deps for backports.lzma (python2 requires it)
+RUN apt-get install -y python-pip python-dev \
+    liblzma-dev libevent1-dev libyaml-dev \
+    libxml2-dev libxslt1-dev python-libxslt1 libz-dev \
+    python-keystoneclient python-swiftclient
+
+# Install core
+ADD docker-registry.source /docker-registry
+RUN pip install /docker-registry/depends/docker-registry-core
+RUN pip install /docker-registry/
+
+# Install swift driver
+ADD docker-registry-driver-swift.source /docker-registry-driver-swift
+RUN pip install /docker-registry-driver-swift
+
+# Install elastic-search plugin
+ADD docker-registry-plugin-elastic-search.source /docker-registry-plugin-elastic-search
+RUN pip install /docker-registry-plugin-elastic-search
+
+# Configure supervisord
+RUN mkdir -p /var/log/supervisor	&& \
+# Configure docker registry
+    mkdir /var/lib/docker-registry
+
+# Configure logrotate
+ADD logrotate/logrotate-loop.sh             /usr/bin/logrotate-loop
+RUN ( chmod a+x /usr/bin/logrotate-loop && \
+      chmod 644 /etc/logrotate.d/nginx )
+
+# Runtime parameters
+CMD ["/bin/bash"]

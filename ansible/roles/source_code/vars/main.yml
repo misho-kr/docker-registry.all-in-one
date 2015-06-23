@@ -1,0 +1,36 @@
+# ----------------------------------------------------------------------
+#    Repos and versions to pull the source code of the docker registry
+# ----------------------------------------------------------------------
+
+docker_registry_src:            https://github.com/dotcloud/docker-registry/archive
+docker_registry_tag:            "0.9.0"
+
+docker_registry_patches:        [
+
+    {
+        "desc":                 "to load the ES plugin",
+        "repo":                 "https://gist.githubusercontent.com/misho-kr/4face298975a8bcf01a6",
+        "commit":               "0f0cf0ea8343daaff51bfcab1c43134d9abdbedb",
+        "files":                [{
+                                   "src":   "docker-registry_index.py", 
+                                   "dest":  "docker_registry/index.py"
+								}],
+
+        "repo_username":        "{{ github_personal_token }}",
+        "repo_password":        "x-oauth-basic",
+
+        "force_basic_auth":     "yes",
+        "enabled":              false
+    },
+]
+
+swift_driver_src:               https://github.com/bacongobbler/docker-registry-driver-swift/archive
+swift_driver_tag:               "master"
+# fix(driver): redis caching issue
+# swift_driver_tag:               "c2f062b32882f1dfc63b46de0163e616d98cae01"
+
+elastic_search_plugin_src:      "https://github.com/misho-kr/elasticsearchindex/archive"
+elastic_search_plugin_tag:      "master"
+
+github_personal_token:          "not-needed"
+github_pp_personal_token:       "not-needed"

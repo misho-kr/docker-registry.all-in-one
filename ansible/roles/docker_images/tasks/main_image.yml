@@ -1,0 +1,21 @@
+---
+# Build "main" docker image of the docker registry
+
+- name: Clean up leftover Dockerfile
+  file: state=absent name={{ build_dir }}/Dockerfile
+
+# Likely a bug in Ansible, module fails if Dockefile is a link
+#
+# - name: Prepare to build main image
+#   file: state=link
+#         src={{ build_dir }}/Dockerfile.setup 
+#         dest={{ build_dir }}/Dockerfile
+
+- name: Prepare to build main image
+  command: cp {{ build_dir }}/Dockerfile.setup {{ build_dir }}/Dockerfile
+
+- name: Build main docker image
+  sudo: yes
+  docker_image: name={{ docker_image_main }}
+                path={{ build_dir }}
+                state=build

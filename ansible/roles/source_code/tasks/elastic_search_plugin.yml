@@ -1,0 +1,17 @@
+---
+
+- name: Download elastic search plugin driver for docker registry
+  get_url: url={{ elastic_search_plugin_src }}/{{ elastic_search_plugin_tag }}.zip
+           dest={{ build_dir }}/docker-registry-plugin-elastic-search.source.zip
+           url_username={{ github_personal_token }}
+           url_password=x-oauth-basic
+#           force_basic_auth=yes
+
+- name: Extract elastic search plugin from archive
+  unarchive: src={{ build_dir }}/docker-registry-plugin-elastic-search.source.zip
+             dest={{ build_dir }}
+             copy=no
+
+- name: Rename elastic search plugin source code folder
+  command: mv {{ build_dir }}/elasticsearchindex-{{ elastic_search_plugin_tag }}
+              {{ build_dir }}/docker-registry-plugin-elastic-search.source
